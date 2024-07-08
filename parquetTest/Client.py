@@ -9,7 +9,7 @@ from requests_toolbelt.multipart.encoder import MultipartEncoder, MultipartEncod
 
 # Step 1: Create a DataFrame with 5 million rows using Polars
 def gen_file():
-    num_rows = 50_000_000
+    num_rows = 5_000_000
     data = {
         'column1': np.random.randint(0, 100, num_rows),
         'column2': np.random.rand(num_rows),
@@ -23,7 +23,7 @@ def gen_file():
 # Step 2: Save the DataFrame as a Parquet file in memory
 def save_in_memory(df):
     buffer = io.BytesIO()
-    df.write_parquet(buffer)
+    df.write_parquet(buffer, compression='gzip')
     buffer.seek(0)  # Rewind the buffer to the beginning
     return buffer
 
