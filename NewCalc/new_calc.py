@@ -4,21 +4,17 @@ import random
 
 def get_calc_per_type(df):
     # Apply rolling median with a window size of 40 and a null threshold of 10% (4 nulls allowed)
-    window_size = 40
+    window_size = 3
 
     # Adjust min_periods to a lower value if needed
-    df2 = df.group_by(["ID", "Type"]).agg(
-        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=4),
-        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=4)
+    df2 = df.with_columns(
+        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=1).over(["ID", "Type"]),
+        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=1).over(["ID", "Type"])
     )
-
-    df2 = df2.explode(["Min1_rolling_median", "Min2_rolling_median"])
-
     # Create a new column with the minimum of Min1_rolling_median and Min2_rolling_median
     df2 = df2.with_columns(
         min_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
     )
-
     df_all_lanes = df2.group_by(["ID", "Type"]).agg(
         avg_min_per_type=pl.col("min_min").mean()
     )
@@ -30,38 +26,48 @@ def get_calc_per_lane(df):
     window_size = 40
     # print(df)
     # Adjust min_periods to a lower value if needed
-    df2 = df.group_by(["ID", "Type", "Lane"]).agg(
-        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=4),
-        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=4),
-        Max_max=pl.col("Max").max()
-    )
 
-    df2 = df2.explode(["Min1_rolling_median", "Min2_rolling_median"])
+    df2 = df.with_columns(
+        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=1).over(
+            ["ID", "Type"]),
+        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=1).over(
+            ["ID", "Type"]),
+        Max_max=pl.col("Max").max().over(["ID", "Type"])
+    )
 
     # Create a new column with the minimum of Min1_rolling_median and Min2_rolling_median
     df2 = df2.with_columns(
-        minimum_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
+        minimum_rolling_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
     )
-    unique_df = df2.unique(subset=["ID", "Type", "Lane"])
 
-    df_all_lanes = unique_df.group_by(["ID", "Type", "Lane"]).agg(
-        avg_min_per_lane=pl.col("minimum_min").mean()
+    unique_df = df2.group_by(["ID", "Type", "Lane"]).agg(
+        avg_min_per_lane=pl.col("minimum_rolling_min").mean(),
+        min_minimum_rolling_min=pl.col("minimum_rolling_min").min(),
+        max_max=pl.col("Max_max").max()
     )
-    df_all_lanes = unique_df.join(df_all_lanes, on=["ID", "Type", "Lane"])
-    return df_all_lanes
+    # df_all_lanes = unique_df.join(df_all_lanes, on=["ID", "Type", "Lane"])
+    return unique_df
 
 def new_calc():
     # Sample data creation (replace this with your actual data)
+    # df = pl.DataFrame({
+    #     "ID": ["GenericID" for x in range(100)],
+    #     "Lane": [random.randint(1,5) for x in range(100)],
+    #     "Type": [y for y in ["A", "C"] for x in range(50)],
+    #     "Min1": [random.randint(1,100) for x in range(100)],
+    #     "Min2": [random.randint(1,100) for x in range(100)],
+    #     "Max": [random.randint(100,200) for x in range(100)],
+    # })
     df = pl.DataFrame({
-        "ID": ["GenericID" for x in range(100)],
-        "Lane": [random.randint(1,5) for x in range(100)],
-        "Type": [y for y in ["A", "C"] for x in range(50)],
-        "Min1": [random.randint(1,100) for x in range(100)],
-        "Min2": [random.randint(1,100) for x in range(100)],
-        "Max": [random.randint(100,200) for x in range(100)],
+        "ID": ["B1", "B1", "B1", "B1", "B1", "B1", "B1", "B1"],
+        "Lane": [1,1,1,1,1,1,1,1],
+        "Type": ["A", "A", "A", "A", "C", "C", "C", "C"],
+        "Min1": [1,2,3,4,9,7,5,4],
+        "Min2": [2,1,2,3,4,5,7,3],
+        "Max": [4, 5, 6, 7, 4, 6, 5, 4],
     })
 
-
+    print(df)
     df_per_type = get_calc_per_type(df)
     print(df_per_type)
 
