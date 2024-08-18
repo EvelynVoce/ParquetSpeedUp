@@ -3,15 +3,11 @@ import random
 
 
 def get_calc_per_type(df):
-    # Apply rolling median with a window size of 40 and a null threshold of 10% (4 nulls allowed)
     window_size = 3
-
-    # Adjust min_periods to a lower value if needed
     df2 = df.with_columns(
-        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=1).over(["ID", "Type"]),
-        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=1).over(["ID", "Type"])
+        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=2).over(["ID", "Type"]),
+        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=2).over(["ID", "Type"])
     )
-    # Create a new column with the minimum of Min1_rolling_median and Min2_rolling_median
     df2 = df2.with_columns(
         min_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
     )
@@ -22,30 +18,24 @@ def get_calc_per_type(df):
 
 
 def get_calc_per_lane(df):
-    # Apply rolling median with a window size of 40 and a null threshold of 10% (4 nulls allowed)
-    window_size = 40
-    # print(df)
-    # Adjust min_periods to a lower value if needed
-
+    window_size = 3
     df2 = df.with_columns(
-        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=1).over(
+        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=2).over(
             ["ID", "Type"]),
-        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=1).over(
+        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=2).over(
             ["ID", "Type"]),
-        Max_max=pl.col("Max").max().over(["ID", "Type"])
+        rolling_max=pl.col("Max").rolling_median(center=True, window_size=window_size, min_periods=2).over(
+            ["ID", "Type"]),
     )
 
-    # Create a new column with the minimum of Min1_rolling_median and Min2_rolling_median
     df2 = df2.with_columns(
         minimum_rolling_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
     )
-
     unique_df = df2.group_by(["ID", "Type", "Lane"]).agg(
         avg_min_per_lane=pl.col("minimum_rolling_min").mean(),
         min_minimum_rolling_min=pl.col("minimum_rolling_min").min(),
-        max_max=pl.col("Max_max").max()
+        max_rolling_max=pl.col("rolling_max").max()
     )
-    # df_all_lanes = unique_df.join(df_all_lanes, on=["ID", "Type", "Lane"])
     return unique_df
 
 def new_calc():
