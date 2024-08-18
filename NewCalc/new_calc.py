@@ -3,18 +3,17 @@ import random
 
 
 def get_calc_per_type(df):
-    window_size = 3
-    df2 = df.with_columns(
-        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=2).over(["ID", "Type"]),
-        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=2).over(["ID", "Type"])
+    WINDOW_SIZE = 3
+    df = df.with_columns(
+        Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=WINDOW_SIZE, min_periods=2).over(["ID", "Type"]),
+        Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=WINDOW_SIZE, min_periods=2).over(["ID", "Type"])
     )
-    df2 = df2.with_columns(
+    df = df.with_columns(
         min_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
     )
-    df_all_lanes = df2.group_by(["ID", "Type"]).agg(
+    return df.group_by(["ID", "Type"]).agg(
         avg_min_per_type=pl.col("min_min").mean()
     )
-    return df_all_lanes
 
 
 def get_calc_per_lane(df):
