@@ -20,11 +20,11 @@ def get_calc_per_lane(df):
     window_size = 3
     df2 = df.with_columns(
         Min1_rolling_median=pl.col("Min1").rolling_median(center=True, window_size=window_size, min_periods=2).over(
-            ["ID", "Type"]),
+            ["ID", "Type", "Lane"]),
         Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=window_size, min_periods=2).over(
-            ["ID", "Type"]),
+            ["ID", "Type", "Lane"]),
         rolling_max=pl.col("Max").rolling_median(center=True, window_size=window_size, min_periods=2).over(
-            ["ID", "Type"]),
+            ["ID", "Type", "Lane"]),
     )
 
     df2 = df2.with_columns(
