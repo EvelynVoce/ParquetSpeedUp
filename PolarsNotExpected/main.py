@@ -3,6 +3,8 @@ import polars as pl
 
 def rolling_median(df):
     df = df.sort("Location")
+
+    df = df.fill_nan(None)
     print(df)
     # With a window of 6 it looks 2 in front and 3 behind including itself making 6
     df = df.with_columns(
@@ -27,6 +29,11 @@ if __name__ == "__main__":
             "ID": ["S001"] * 10,
             "Location": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
             "Meas": [10,20,30,40,50,60,70,80,90,100]
+        },
+        schema={
+            "ID": pl.String,
+            "Location": pl.Float64,
+            "Meas": pl.Float64,
         }
     )
 
@@ -37,7 +44,12 @@ if __name__ == "__main__":
         {
             "ID": ["S001"] * 10,
             "Location": [5, 10, 15, 20, 25, 30, 35, 40, 45, 50],
-            "Meas": [10, 20, 30, None, 50, 60, None, 80, 90, 100]
+            "Meas": [10, 20, 30, None, None, None, None, 80, 90, 100]
+        },
+        schema={
+            "ID": pl.String,
+            "Location": pl.Float64,
+            "Meas": pl.Float64,
         }
     )
 
