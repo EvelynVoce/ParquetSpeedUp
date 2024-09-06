@@ -32,9 +32,13 @@ class TestCalc1:
             {
                 "ID": [1, 1],
                 "Type": ["A", "B"],
-                "avg_min_per_type": [25.0, 65.0]
+                "avg_min_per_type": [25.5, 65.5],
+                "Stage": ["Final", "Final"],
+                "stage_constant": [0.5, 0.5],
             }
         )
+        print(result_df)
+        print(expected)
         assert_frame_equal(result_df, expected, check_row_order=False)
 
     def test_get_calc_per_type_multi(self, sample_df_multiple_ids):
@@ -43,7 +47,9 @@ class TestCalc1:
             {
                 "ID": [1, 1, 2, 2],
                 "Type": ["A", "B", "A", "B"],
-                "avg_min_per_type": [25.0, 65.0, 37.5, 67.5]
+                "avg_min_per_type": [25.5, 65.5, 38, 68],
+                "Stage": ["Final", "Final", "Final", "Final"],
+                "stage_constant": [0.5, 0.5, 0.5, 0.5],
             }
         )
         assert_frame_equal(result_df, expected, check_row_order=False)
@@ -59,11 +65,11 @@ class TestCalc1:
         })
 
         result_df = get_calc_per_type(df)
-        assert result_df.shape == (0, 3)
+        assert result_df.shape == (0, 5)
 
 
-    def test_too_many_window_nulls(self):
-        """Test that the function handles a DataFrame with too many nulls in a window"""
+    def test_not_enough_values(self):
+        """Test that the function handles a DataFrame with not enough values to roll"""
         df = pl.DataFrame({
             "ID": [1, 1, 1],
             "Type": ["A", "B", "B"],
@@ -76,7 +82,30 @@ class TestCalc1:
             {
                 "ID": [1, 1],
                 "Type": ["A", "B"],
-                "avg_min_per_type": [None, 25.0]
+                "avg_min_per_type": [None, 25.5],
+                "Stage": ["Final", "Final"],
+                "stage_constant": [0.5, 0.5],
+            }
+        )
+        assert_frame_equal(result_df, expected, check_row_order=False)
+
+    def test_too_many_window_nulls(self):
+        """Test that the function handles a DataFrame with too many nulls in the window"""
+        df = pl.DataFrame({
+            "ID": [1, 1, 1, 1, 1],
+            "Type": ["A", "A", "A", "B", "B"],
+            "Min1": [10, None, None, 20, 30],
+            "Min2": [15, 200, 200, 25, 35],
+        })
+
+        result_df = get_calc_per_type(df)
+        expected = pl.DataFrame(
+            {
+                "ID": [1, 1],
+                "Type": ["A", "B"],
+                "avg_min_per_type": [None, 25.5],
+                "Stage": ["Final", "Final"],
+                "stage_constant": [0.5, 0.5],
             }
         )
         assert_frame_equal(result_df, expected, check_row_order=False)

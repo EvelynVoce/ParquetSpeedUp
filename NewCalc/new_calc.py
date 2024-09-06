@@ -2,6 +2,13 @@ import polars as pl
 import random
 
 
+stage_df = pl.DataFrame(
+    {
+        "Stage": ["Final", "Not Final"],
+        "stage_constant": [0.5, 0.25]
+    }
+)
+
 def get_calc_per_type(df):
     WINDOW_SIZE = 3
     df = df.with_columns(
@@ -9,11 +16,20 @@ def get_calc_per_type(df):
         Min2_rolling_median=pl.col("Min2").rolling_median(center=True, window_size=WINDOW_SIZE, min_periods=2).over(["ID", "Type"])
     )
     df = df.with_columns(
-        min_min=pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]),
+        min_min=pl.when(pl.col("Min1_rolling_median").is_null() | pl.col("Min2_rolling_median").is_null())
+        .then(None)
+        .otherwise(pl.min_horizontal(["Min1_rolling_median", "Min2_rolling_median"]))
     )
-    return df.group_by(["ID", "Type"]).agg(
-        avg_min_per_type=pl.col("min_min").mean()
+    # STAGE IS FINAL BY DEFAULT FOR NOW
+    df = df.group_by(["ID", "Type"]).agg(
+        avg_min_per_type=pl.col("min_min").mean(),
+        Stage=pl.lit("Final")
     )
+    df = df.join(stage_df, on="Stage")
+    df = df.with_columns(
+        avg_min_per_type=pl.col("avg_min_per_type") + pl.col("stage_constant")
+    )
+    return df
 
 
 def get_calc_per_lane(df):
@@ -60,8 +76,8 @@ def new_calc():
     df_per_type = get_calc_per_type(df)
     print(df_per_type)
 
-    df_per_lane = get_calc_per_lane(df)
-    print(df_per_lane)
+    # df_per_lane = get_calc_per_lane(df)
+    # print(df_per_lane)
 
 
 if __name__ == "__main__":
